@@ -301,7 +301,6 @@ public class HighScoreProcessor implements Runnable {
             displayTitle = "High Scores of All Time";
         } else { // Couldnt read-write to file => use local array values
             // add, sort, delete if too large
-            if (newHigh == null) newHigh = new HighScore(inputHighScoreName(newScore), newScore);
             highScores.add(newHigh);  // add to list of highScores
             Collections.sort(highScores);
             while (highScores.size() > MAX_HIGH_SCORES) highScores.remove(MAX_HIGH_SCORES);

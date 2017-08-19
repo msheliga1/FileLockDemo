@@ -169,6 +169,15 @@ public class FileLockDemo extends HighScoreProcessor implements Runnable, HighSc
     } // End displayReadWriteFailureMessage
 
 
+    // Display values in high score list - use HTML formatting since showMessageDialog formats poorly.
+    public void displayNotAHighScore(int newScore)  {
+        // Displaying with ShowMessageDialog will compress text - aka columns cant be 
+        // aligned, even if spaces replaced with dots, so we use HTML.
+        StringBuilder builder = new StringBuilder("" + newScore + " is not a high score.");
+        String title = "Score is not a High Score";
+        JOptionPane.showMessageDialog(null, builder.toString(), title, JOptionPane.INFORMATION_MESSAGE);  
+    } // End displayNotAHighScore()
+    
     // this works - seek(0) after reading will overwrite file.
     @Override
     public void addNewScore(int newScore)  {
@@ -191,6 +200,11 @@ public class FileLockDemo extends HighScoreProcessor implements Runnable, HighSc
             testReadWriteFile(file, 10000, true, lockMsg);  
         }
 
+        if (!newScoreIsAHighScore(newScore)) {
+        	displayNotAHighScore(newScore);
+        	return;
+        }
+        
         // if file is read-write-able, wait for file lock to be released.
         if (unsureIfCanReadWriteFile()) {
         	reason = " becuase it is uncertain if the file can be read and writtenm.";
@@ -207,7 +221,7 @@ public class FileLockDemo extends HighScoreProcessor implements Runnable, HighSc
                  FileLock lockRaf = myTryLock(chanRaf, 10000, true, lockMsg);
             		                                 									) { 
  
-                System.out.println("FileLockDemo:Add - canRW file - tried lock = " + lockRaf);
+                // System.out.println("FileLockDemo:Add - canRW file - tried lock = " + lockRaf);
                 if (lockRaf == null) {
                     reason = " because the file is locked"; 
                 } else {                   
@@ -216,10 +230,9 @@ public class FileLockDemo extends HighScoreProcessor implements Runnable, HighSc
                     String prompt2 = "Please input your name. (This process currently has a lock on the file.)";
                     String newName = HighScoreProcessor.inputHighScoreName(newScore, prompt2);
                     newHigh = new HighScore(newName, newScore);                  
-
-                    // BufferedReader br2 = new BufferedReader(new FileReader(new File("tempx")));  
+  
                     fileScores = HighScoreFile.readHighScoresFromFile(br);
-                    System.out.println("FileLockDemo:fileScores.size " + fileScores.size());
+                    // System.out.println("FileLockDemo:fileScores.size " + fileScores.size());
                     fileScores.add(newHigh);  // add to list of highScores
                     // sort, delete if too large
                     Collections.sort(fileScores);
