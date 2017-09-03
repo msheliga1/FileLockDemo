@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;      
 import javax.swing.JOptionPane;
+import static java.util.stream.Collectors.*;
 import static javamjs.nio.channels.MyTryLock.myTryLock;
  
 // ---------------------------------------------------------------------
@@ -93,8 +94,8 @@ public class FileLockDemo extends HighScoreProcessor implements Runnable, HighSc
         } else {
             addNewScore(newScore);
         }
-      }  // end while
-    } // end main
+      }  // end while !appDone
+    } // end run
 
   // ----------- FileLockDemo Constructors ---------------------------------
   // -----------------------------------------------------------------------
@@ -153,7 +154,7 @@ public class FileLockDemo extends HighScoreProcessor implements Runnable, HighSc
         if (failures == 1) {
             StringBuilder msg = new StringBuilder("");
             msg.append("This app demonstrates file locks for different processes." + newLine + newLine);
-            msg.append("However it appears that it can not read and write the file." + newLine);  // used for exception message.
+            msg.append("However it appears that it can not read and write the file." + newLine);  
             msg.append("While it will still function, to see it fully function, file access must be permitted." + newLine);
             msg.append("The file will be saved in the same directory as the java program, so it will not ");
             msg.append("function if run from a .jar archive." + newLine + newLine);
@@ -178,7 +179,9 @@ public class FileLockDemo extends HighScoreProcessor implements Runnable, HighSc
         JOptionPane.showMessageDialog(null, builder.toString(), title, JOptionPane.INFORMATION_MESSAGE);  
     } // End displayNotAHighScore()
     
-    // this works - seek(0) after reading will overwrite file.
+    // add a New Score, either to a file if possible, or to a list otherwise
+    // Some scores may not be large enough to be a high score, and the user name must be input 
+    // each time, per the spirit of the original game.
     @Override
     public void addNewScore(int newScore)  {
         // ready to add a new score - synch for reread-update-write 
@@ -219,9 +222,7 @@ public class FileLockDemo extends HighScoreProcessor implements Runnable, HighSc
                  OutputStream os = Channels.newOutputStream(raf.getChannel()); 
                  PrintWriter pw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(os)));
                  FileLock lockRaf = myTryLock(chanRaf, 10000, true, lockMsg);
-            		                                 									) { 
- 
-                // System.out.println("FileLockDemo:Add - canRW file - tried lock = " + lockRaf);
+                ) { 
                 if (lockRaf == null) {
                     reason = " because the file is locked"; 
                 } else {                   
@@ -234,10 +235,11 @@ public class FileLockDemo extends HighScoreProcessor implements Runnable, HighSc
                     fileScores = HighScoreFile.readHighScoresFromFile(br);
                     // System.out.println("FileLockDemo:fileScores.size " + fileScores.size());
                     fileScores.add(newHigh);  // add to list of highScores
-                    // sort, delete if too large
-                    Collections.sort(fileScores);
-                    while (fileScores.size() > MAX_HIGH_SCORES) fileScores.remove(MAX_HIGH_SCORES);
-
+                    // sort, delete if too many scores
+                    fileScores = fileScores.stream().sorted().limit(MAX_HIGH_SCORES).collect(toList());
+                    // Collections.sort(fileScores);
+                    // while (fileScores.size() > MAX_HIGH_SCORES) fileScores.remove(MAX_HIGH_SCORES);
+                    // this works - seek(0) after reading will enable writes to overwrite file.
                     raf.seek(0);  // without this print will write to after last read location.
                     HighScoreFile.writeHighScoresToFile(fileScores, pw);
                 } // end if locked or not 
